@@ -1,0 +1,23 @@
+# Node.js and React Native / Expo
+node_modules/
+.expo/
+dist/
+npm-debug.*
+web-build/
+
+# Python / ML Pipeline
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+.venv/
+.jupyter/
+*.ipynb_checkpoints/
+
+# Datasets (Ignoring datasets folder as it contains large image data)
+datasets/
+
+# ML Checkpoints
+*.pth
