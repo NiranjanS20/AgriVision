@@ -1,3 +1,6 @@
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+sys.stderr.reconfigure(encoding='utf-8')
 import torch
 import tensorflow as tf
 import numpy as np
@@ -7,7 +10,8 @@ import os
 # Helper to convert PyTorch to ONNX to TFLite
 def export_to_tflite(pth_path="agrisense_final.pth", output_tflite="agrisense_int8.tflite"):
     print("Loading PyTorch model...")
-    model = AgriSenseModel()
+    # Initialize with 4 classes to match your dataset!
+    model = AgriSenseModel(num_disease_classes=4)
     if os.path.exists(pth_path):
         model.load_state_dict(torch.load(pth_path, map_location='cpu'))
     model.eval()
@@ -20,28 +24,20 @@ def export_to_tflite(pth_path="agrisense_final.pth", output_tflite="agrisense_in
                       input_names=['input'], 
                       output_names=['disease_logits', 'severity_logits', 'cam_features'])
 
-    # Note: In a real pipeline, you would use ONNX-TensorFlow to convert ONNX to a TF SavedModel,
-    # and then use the TFLiteConverter on the SavedModel. 
-    # For this script, we mock the final TFLite Converter step to show the INT8 setup.
+    # 2. Convert ONNX to TF SavedModel using onnx2tf (Modern, stable converter)
+    print("Converting ONNX to TensorFlow SavedModel using onnx2tf...")
+    import subprocess
+    import shutil
+    
+    # onnx2tf is a rock-solid converter that avoids all the tensorflow-addons dependency issues
+    subprocess.run(["onnx2tf", "-i", onnx_path, "-o", "tf_saved_model_dir", "--non_verbose"], check=True)
 
-    # 2. Convert to TFLite INT8
-    print("Setting up INT8 Quantization...")
-    # converter = tf.lite.TFLiteConverter.from_saved_model("tf_saved_model_dir")
-    # converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    # 3. onnx2tf natively generates .tflite files directly!
+    # We will use the float16 model which is extremely small and optimized for mobile
+    generated_tflite = "tf_saved_model_dir/temp_agrisense_float16.tflite"
+    print(f"Quantized TFLite successfully generated at {generated_tflite}. Moving to output...")
     
-    # def representative_data_gen():
-    #     for i in range(100):
-    #         # Provide real calibration data here
-    #         yield [np.random.rand(1, 224, 224, 3).astype(np.float32)]
-            
-    # converter.representative_dataset = representative_data_gen
-    # converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
-    # converter.inference_input_type = tf.uint8
-    # converter.inference_output_type = tf.uint8
-    
-    # tflite_model = converter.convert()
-    # with open(output_tflite, 'wb') as f:
-    #     f.write(tflite_model)
+    shutil.copy(generated_tflite, output_tflite)
     
     print("Extracting CAM Weights...")
     cam_weights = model.get_cam_weights().detach().numpy()
