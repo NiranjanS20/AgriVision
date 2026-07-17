@@ -27,3 +27,4 @@ ml_pipeline/temp_agrisense.onnx*
 ml_pipeline/tf_saved_model_dir/
 ml_pipeline/agrisense_int8.tflite
 ml_pipeline/cam_weights.npy
+ml_pipeline/train_sugarcane.py
